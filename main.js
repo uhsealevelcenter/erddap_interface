@@ -1,11 +1,20 @@
 var SELECTED_VARIABLES = [];
+var data_resolution = "daily"; //default is daily
+var data_quality = "fast"; //default is fast delivery
 
 $(document).ready(function () {
+
+    var today = new Date();
+
+    var oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     var calendarOptions = {
         mode: "range",
         enableTime: true,
         dateFormat: "Y-m-d\\TH:i\\Z",
+        defaultDate: [oneWeekAgo, today],
+        // defaultHour: [12, 12],
         time_24hr: true,
 
         onChange: function (selectedDates, dateStr, instance) {
@@ -47,7 +56,7 @@ $(document).ready(function () {
     // 4) Constraints used (e.g. country, time etc) are separated by "&"
     // 5) for time, need to provide >= and <= ISO time range
     // 6) Country name needs to be in quotes e.g. "France", same goes for station names
-    // 7) If no constrain selected ERDDAP queries ALL of them 
+    // 7) If no constrain selected ERDDAP queries ALL of them
 
 
     // Populate each dropdown element specified in searchOptions
@@ -76,7 +85,6 @@ $(document).ready(function () {
             });
         })
     }
-
 
 
     // function populateDropdown(dropdownID, searchParam) {
@@ -109,12 +117,12 @@ $(document).ready(function () {
     function populateAllDropdowns() {
         // build a string of all search parameters
         var stringBuildSP = "";
-        var separator = [',',''];
+        var separator = [',', ''];
         searchOptions.params.forEach(function (param, i) {
-            if(i==searchOptions.params.length-1)
-                stringBuildSP+=param.term+separator[1];
+            if (i == searchOptions.params.length - 1)
+                stringBuildSP += param.term + separator[1];
             else
-                stringBuildSP+=param.term+separator[0];
+                stringBuildSP += param.term + separator[0];
         });
         // console.log("stringBuildSP "+stringBuildSP);
         $.getJSON("https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.json?" + stringBuildSP + "&distinct()", function (data) {
@@ -126,7 +134,7 @@ $(document).ready(function () {
                     // Find the column index of the search parameter and add it json
                     // and do not duplicate data
                     const found = tempJson.results.some(el => el.text === value[data.table.columnNames.indexOf(param.term)]);
-                    if(!found)
+                    if (!found)
                         tempJson.results.push({"id": i, "text": value[data.table.columnNames.indexOf(param.term)]})
                 });
 
@@ -157,7 +165,7 @@ $(document).ready(function () {
 
 });
 
-function buildDownLoadURL(){
+function buildDownLoadURL() {
 
 }
 
@@ -170,7 +178,24 @@ function ValidateVariableSelection() {
             numberOfCheckedItems++;
             SELECTED_VARIABLES.push(checkboxes[i].getAttribute("value"))
         }
+    }
+}
 
+function ValidateResolutionSelection() {
+    var resolution = document.getElementsByName("resolution");
+    for (var i = 0; i < resolution.length; i++) {
+        if (resolution[i].checked) {
+            data_resolution = resolution[i].getAttribute("value")
+        }
+    }
+}
+
+function ValidateQualitySelection() {
+    var quality = document.getElementsByName("quality");
+    for (var i = 0; i < quality.length; i++) {
+        if (quality[i].checked) {
+            data_quality = quality[i].getAttribute("value")
+        }
     }
 }
 

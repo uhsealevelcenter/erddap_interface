@@ -8,22 +8,42 @@
 <body>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+<link rel="stylesheet" href="style.css">
 <script src="https://uhslc.soest.hawaii.edu/erddap/images/wz_tooltip.js"></script>
 
 <h1>ERDDAP API TEST</h1>
 
-
-<form method="post" action="#">
+<div>
+<!--<form method="post" action="#">-->
     <fieldset>
         <legend>Select variables to include in the download file</legend>
         <input type="checkbox" name="variable" value="station_name" onclick="return ValidateVariableSelection();">Station Name<br>
         <input type="checkbox" name="variable" value="station_country" onclick="return ValidateVariableSelection();">Station Country<br>
         <input type="checkbox" name="variable" value="latitude" onclick="return ValidateVariableSelection();">Latitude<br>
         <input type="checkbox" name="variable" value="longitude" onclick="return ValidateVariableSelection();">Longitude<br>
-        <br>
-        <input type="submit" value="Submit now">
+<!--        <br>-->
+<!--        <input type="submit" value="Submit now">-->
     </fieldset>
-</form>
+<!--</form>-->
+
+</div>
+
+
+<div>
+
+    <fieldset>
+        <legend>Select data resolution</legend>
+        <input type="radio" name="resolution" value="daily" checked onclick="return ValidateResolutionSelection();">Daily<br>
+        <input type="radio" name="resolution" value="hourly" onclick="return ValidateResolutionSelection();">Hourly<br>
+    </fieldset>
+
+<fieldset>
+        <legend>Select data quality</legend>
+        <input type="radio" name="quality" value="fast"checked onclick="return ValidateQualitySelection();">Fast Delivery<br>
+        <input type="radio" name="quality" value="rq" onclick="return ValidateQualitySelection();">Research Quality<br>
+</fieldset>
+</div>
 
 <div class="">
     <label for="select2Station">
@@ -59,15 +79,14 @@
 </option><option>.nccsv - Download a NetCDF-3-like 7-bit ASCII NCCSV .csv file with COARDS/CF/ACDD metadata.
 </option></select>
 
-<form id="target" action="">
-    <input type="text" value="Hello there">
-    <input type="submit" value="Retrieve">
-</form>
-
-<button onclick="downloadData('https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.csv?sea_level%2Ctime%2Cstation_country&time%3E=2020-01-23T00%3A00%3A00Z&time%3C=2020-02-29T22%3A59%3A59Z&station_country=%22Malaysia%22')">Retreive</button>
-<div id="other">
-    Trigger the handler
-</div>
+<!--<form id="target" action="">-->
+<!--    <input type="text" value="Hello there">-->
+<!--    <input type="submit" value="Retrieve">-->
+<!--</form>-->
+<button onclick="downloadData('https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.csv?sea_level%2Ctime%2Cstation_country&time%3E=2020-01-23T00%3A00%3A00Z&time%3C=2020-02-29T22%3A59%3A59Z&station_country=%22Malaysia%22')">Download Data</button>
+<!--<div id="other">-->
+<!--    Trigger the handler-->
+<!--</div>-->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
 <script src="main.js"> </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
