@@ -1,7 +1,14 @@
-var SELECTED_VARIABLES = [];
+var SELECTED_VARIABLES = ["sea_level", "time"];
 var data_resolution = "daily"; //default is daily
 var data_quality = "fast"; //default is fast delivery
 
+var searchParamCollection = {
+    resolution: data_resolution,
+    quality: data_quality,
+    variables: SELECTED_VARIABLES,
+    constraints: [] //{term: "", searchString: "", S2ID: ""}
+    //Todo: download file format
+};
 $(document).ready(function () {
 
     var today = new Date();
@@ -64,58 +71,46 @@ $(document).ready(function () {
 
     populateAllDropdowns();
 
-    $('#select2Country').on('select2:select', function (e) {
-        var data = e.params.data;
-        var id = data.id;
-        console.log("Country selected " + data + " " + data.text);
-        callERDDAP("station_country=\"" + data.text + "\"");
-    });
+    function repopulateDropdowns(searchVariables, searchConstraints) {
+        var url = "https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.json?" + searchVariables + "&distinct()" + searchConstraints;
+        console.log("URL: " + url);
+        console.log("searchVariables: " + searchVariables + " s2ID: " + " searchConstraint: " + searchConstraints);
+        $.getJSON(url, function (data) {
+            // Get the table columns from the server and repopulate all the select2 elements
+            data.table.columnNames.forEach(function (element, counter) {
+                searchOptions.params.forEach(function (param, i) {
+                    if (element === param.term) {
+                        $(param.select2ID).select2({
+                            placeholder: {
+                                id: '-1', // the value of the option
+                                text: 'Search ...',
+                            },
+                            allowClear: true,
+                            tags: false,
+                            tokenSeparators: [',', ' '],
+                            data: transformJSONtoSelect2(data, param.term).results,
+                        });
+                        // Reselect the element we searched for
+                        searchParamCollection.constraints.forEach(function (_param, j) {
+                            var matchObject = transformJSONtoSelect2(data, param.term).results.find(o => o.text === _param.searchString.substring(1, _param.searchString.length - 1));
+                            if (matchObject != undefined) {
+                                $(param.select2ID).val(matchObject.id).trigger('change');
+                            }
 
-    function callERDDAP(url) {
-        $.getJSON("https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.json?station_country&distinct()&" + url, function (data) {
-            $("#select2Country").select2({
-                placeholder: {
-                    id: '-1', // the value of the option
-                    text: 'Search ...',
-                },
-                allowClear: true,
-                tags: false,
-                tokenSeparators: [',', ' '],
-                data: transformJSONtoSelect2(data).results,
+                        });
+                    }
+
+                });
             });
         })
     }
 
 
-    // function populateDropdown(dropdownID, searchParam) {
-    //     // build a string of all search parameters
-    //     var stringBuildSP = "";
-    //     $.getJSON("https://uhslc.soest.hawaii.edu/erddap/tabledap/global_hourly_fast.json?" + searchParam + "&distinct()", function (data) {
-    //         $(dropdownID).select2({
-    //             placeholder: {
-    //                 id: '-1', // the value of the option
-    //                 text: 'Search for ' + searchParam,
-    //             },
-    //             allowClear: true,
-    //             tags: false,
-    //             tokenSeparators: [',', ' '],
-    //             data: transformJSONtoSelect2(data).results,
-    //         });
-    //     })
-    //         .fail(function (jqXHR, textStatus, errorThrown) {
-    //             alert('Failed to retrieve stations list! ' + textStatus);
-    //
-    //         })
-    //         .always(function () {
-    //             // request ended
-    //         });
-    // }
-
     // TODO: will need to include data type (daily/hourly), returned data type, and data quality (fast or research)
     // based on the user selection in the checkmark and/or toggle group
 
     function populateAllDropdowns() {
-        // build a string of all search parameters
+        // build a string of all search variables
         var stringBuildSP = "";
         var separator = [',', ''];
         searchOptions.params.forEach(function (param, i) {
@@ -149,6 +144,51 @@ $(document).ready(function () {
                     data: tempJson.results,
                 });
 
+                // Add on:select listener to each dropdown
+                $(param.select2ID).on('select2:select', function (e) {
+                    var data = e.params.data;
+                    var id = data.id;
+                    var selectedString = "\"" + data.text + "\"";
+                    //Clear the dropdown options of the other select2 boxes that were not selected
+                    searchOptions.params.forEach(function (_param, i) {
+                        $(_param.select2ID).html('').select2({data: [{id: '', text: ''}]});
+                    });
+
+                    searchParamCollection.constraints.push({
+                        term: param.term,
+                        searchString: selectedString,
+                        S2ID: param.select2ID
+                    });
+
+                    // build a string of all search variables
+                    var stringBuild = "";
+                    var separator = ['&', ''];
+                    console.log("SELECTED LENGTH " + searchParamCollection.constraints.length);
+                    searchParamCollection.constraints.forEach(function (param, i) {
+                        stringBuild += separator[0] + param.term + "=" + param.searchString + separator[1];
+                    });
+                    // repopulate the boxes with the constraints from the previous step
+                    repopulateDropdowns(stringBuildSP, stringBuild);
+                    console.log("stringSearch: " + stringBuild);
+                });
+
+                // Add on:unselect listener to each dropdown to clear the string
+                $(param.select2ID).on('select2:unselect', function (e) {
+                    searchParamCollection.constraints.forEach(function (_param, i) {
+                        if (param.term === _param.term) {
+                            searchParamCollection.constraints.splice(i, 1);
+                        }
+                    });
+                    // build a string of all search variables
+                    var stringBuild = "";
+                    var separator = ['&', ''];
+                    searchParamCollection.constraints.forEach(function (param, i) {
+                        stringBuild += separator[0] + param.term + "=" + param.searchString + separator[1];
+                    });
+                    // repopulate the boxes with the constraints from the previous step
+                    repopulateDropdowns(stringBuildSP, stringBuild);
+                });
+
                 tempJson = {"results": [{"id": -1, "text": ""}]};
             });
 
@@ -165,12 +205,19 @@ $(document).ready(function () {
 
 });
 
-function buildDownLoadURL() {
-
+function updateUIURL(_data_resolution, _data_quality, _variablesArr, _searchParamsArr) {
+    searchParamCollection = {
+        resolution: _data_resolution,
+        quality: _data_quality,
+        variables: _variablesArr,
+        constraints: _searchParamsArr
+        //Todo: download file format
+    };
+    // console.log(_data_resolution + _data_quality +)
 }
 
 function ValidateVariableSelection() {
-    SELECTED_VARIABLES = [];
+    SELECTED_VARIABLES = ["sea_level", "time"];
     var checkboxes = document.getElementsByName("variable");
     var numberOfCheckedItems = 0;
     for (var i = 0; i < checkboxes.length; i++) {
@@ -179,6 +226,7 @@ function ValidateVariableSelection() {
             SELECTED_VARIABLES.push(checkboxes[i].getAttribute("value"))
         }
     }
+    searchParamCollection.variables = SELECTED_VARIABLES;
 }
 
 function ValidateResolutionSelection() {
@@ -199,20 +247,14 @@ function ValidateQualitySelection() {
     }
 }
 
-function transformJSONtoSelect2(jsonData, /*station*/) {
+function transformJSONtoSelect2(jsonData, column) {
     var tempJson = {"results": [{"id": -1, "text": ""}]};
 
-    // if (station)
-    //     jsonData.table.rows.forEach(element => tempJson.results.push({
-    //         "id": pad(element[0], 3),
-    //         "text": pad(element[0], 3) + " " + element[1]
-    //     }));
-    // else {
     jsonData.table.rows.forEach(function (value, i) {
-        tempJson.results.push({"id": i, "text": value[0]})
+        const found = tempJson.results.some(el => el.text === value[jsonData.table.columnNames.indexOf(column)]);
+        if (!found)
+            tempJson.results.push({"id": i, "text": value[jsonData.table.columnNames.indexOf(column)]})
     });
-    // }
-
     return tempJson;
 }
 
