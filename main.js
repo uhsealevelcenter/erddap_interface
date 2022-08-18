@@ -56,14 +56,14 @@ $(document).ready(function () {
 
     $(".flatpickr").flatpickr(calendarOptions);
 
-    $("#target").submit(function (event) {
-        console.log("BUTTON CLICKED");
-        alert("Handler for .submit() called.");
-        event.preventDefault();
-        // $.get( "ajax/test.html", function( data ) {
-        // $( ".result" ).html( data );
-        // alert( "Load was performed." );
-    });
+    // $("#target").submit(function (event) {
+    //     console.log("BUTTON CLICKED");
+    //     alert("Handler for .submit() called.");
+    //     event.preventDefault();
+    //     // $.get( "ajax/test.html", function( data ) {
+    //     // $( ".result" ).html( data );
+    //     // alert( "Load was performed." );
+    // });
 
 
     // Example query to get sea level data and time stamp for France
@@ -106,7 +106,7 @@ $(document).ready(function () {
                             tokenSeparators: [',', ' '],
                             data: transformJSONtoSelect2(data, param.term).results,
                         });
-                        // Reselect the element we searched for
+                        // Find and reselect the element we searched for because it was temporarily cleared
                         searchParamCollection.constraints.forEach(function (_param, j) {
                             var matchObject = transformJSONtoSelect2(data, param.term).results.find(o => o.text === _param.searchString.substring(1, _param.searchString.length - 1));
                             if (matchObject != undefined) {
@@ -121,28 +121,30 @@ $(document).ready(function () {
         })
     }
 
-
-    // TODO: will need to include data type (daily/hourly), returned data type, and data quality (fast or research)
-    // based on the user selection in the checkmark and/or toggle group
+    // Retrieve data and populate select2 fields based on the default parameters
     function populateAllDropdowns() {
         // build a string of all search variables
         var stringBuildSP = buildSearchVariablesString(searchOptions.params);
         var resolutionAndQuality = buildDataTypeString();
-
-        // console.log("stringBuildSP "+stringBuildSP);
+        // Example string:
+        // https://uhslc.soest.hawaii.edu/erddap/tabledap/global_daily_fast.json?station_name,station_country&distinct()
         $.getJSON("https://uhslc.soest.hawaii.edu/erddap/tabledap/" + resolutionAndQuality + ".json?" + stringBuildSP + "&distinct()", function (data) {
             var tempJson = {"results": [{"id": -1, "text": ""}]};
 
             searchOptions.params.forEach(function (param, j) {
+                // "table" is the out most object name in the returned json data
+                // "rows" is a field in the table object
+                // go through all rows of each column and add them to a temp json object to be added to select2 below
                 data.table.rows.forEach(function (value, i) {
                     // console.log("param.term "+param.term);
-                    // Find the column index of the search parameter and add it json
-                    // and do not duplicate data
+                    // Find the column index of the search parameter and add it to json
+                    // and do not add duplicate data
                     const found = tempJson.results.some(el => el.text === value[data.table.columnNames.indexOf(param.term)]);
                     if (!found)
                         tempJson.results.push({"id": i, "text": value[data.table.columnNames.indexOf(param.term)]})
                 });
 
+                // Populate select2 fields with the temp json file created above
                 $(param.select2ID).select2({
                     placeholder: {
                         id: '-1', // the value of the option
@@ -159,23 +161,25 @@ $(document).ready(function () {
                     var data = e.params.data;
                     var id = data.id;
                     var selectedString = "\"" + data.text + "\"";
-                    //Clear the dropdown options of the other select2 boxes that were not selected
+                    //Clear the dropdown options of all select2 boxes
                     searchOptions.params.forEach(function (_param, i) {
                         $(_param.select2ID).html('').select2({data: [{id: '', text: ''}]});
                     });
 
+                    // Keep track of user query selection
                     searchParamCollection.constraints.push({
                         term: param.term,
                         searchString: selectedString,
                         S2ID: param.select2ID
                     });
 
-                    // repopulate the boxes with the constraints from the previous step
+                    // repopulate the boxes with the constraints created above
                     repopulateDropdowns();
 
                 });
 
                 // Add on:unselect listener to each dropdown to clear the string
+                // After clearing, repopulate the select2 box
                 $(param.select2ID).on('select2:unselect', function (e) {
                     searchParamCollection.constraints.forEach(function (_param, i) {
                         if (param.term === _param.term) {
@@ -203,7 +207,7 @@ $(document).ready(function () {
 
 });
 
-// Only happens ones
+// Only happens once
 function buildSearchVariablesString(collection) {
     var stringBuild = "";
     var separator = [',', ''];
@@ -216,7 +220,7 @@ function buildSearchVariablesString(collection) {
     return stringBuild;
 }
 
-// Changes depending on user input
+// Returns Search string based on the current menu selections
 function buildSearchConstraintsString(collection) {
     var stringBuild = "";
     var separator = ['&', ''];
